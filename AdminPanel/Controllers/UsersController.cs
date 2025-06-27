@@ -35,4 +35,13 @@ public class UsersController : ControllerBase
 
         return Ok(user);
     }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(User), 200)]
+    public IActionResult AddUser(User newUser)
+    {
+        _userService.AddUser(newUser);
+
+        return Ok(newUser);
+    }
 }

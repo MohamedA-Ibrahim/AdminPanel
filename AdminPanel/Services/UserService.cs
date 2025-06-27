@@ -6,6 +6,7 @@ public interface IUserService
 {
     User? GetById(Guid id);
     List<User> GetUsers();
+    void AddUser(User user);
 }
 
 public class UserService : IUserService
@@ -71,5 +72,10 @@ public class UserService : IUserService
     public User? GetById(Guid id)
     {
         return _users.FirstOrDefault(u => u.Id == id);
+    }
+
+    public void AddUser(User user)
+    {
+        _users.Add(user);
     }
 }
