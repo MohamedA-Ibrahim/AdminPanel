@@ -11,7 +11,7 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    private readonly List<User> _users =
+    private static readonly List<User> _users =
     [
             new User
             {
