@@ -9,9 +9,7 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    public List<User> GetUsers()
-    {
-        return
+    private readonly List<User> _users =
         [
             new User
             {
@@ -62,5 +60,11 @@ public class UserService : IUserService
                 Phone = "01011223344"
             },
         ];
+
+    public List<User> GetUsers()
+    {
+        return _users;
+
+    }
     }
 }
