@@ -4,13 +4,14 @@ namespace AdminPanel.Services;
 
 public interface IUserService
 {
+    User? GetById(Guid id);
     List<User> GetUsers();
 }
 
 public class UserService : IUserService
 {
     private readonly List<User> _users =
-        [
+    [
             new User
             {
                 Id = Guid.NewGuid(),
@@ -59,12 +60,16 @@ public class UserService : IUserService
                 Email = "khaled.nabil@example.com",
                 Phone = "01011223344"
             },
-        ];
+    ];
 
     public List<User> GetUsers()
     {
         return _users;
 
     }
+
+    public User? GetById(Guid id)
+    {
+        return _users.FirstOrDefault(u => u.Id == id);
     }
 }

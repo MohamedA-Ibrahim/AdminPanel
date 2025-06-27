@@ -23,4 +23,16 @@ public class UsersController : ControllerBase
 
         return Ok(users);
     }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(User), 200)]
+    [ProducesResponseType(404)]
+    public IActionResult GetById([FromRoute] Guid id)
+    {
+        var user = _userService.GetById(id);
+        if (user is null)
+            return NotFound();
+
+        return Ok(user);
+    }
 }
