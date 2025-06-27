@@ -15,6 +15,9 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    /// <summary>
+    /// Return list of users
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
     public IActionResult GetUsers()
@@ -24,6 +27,11 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+    /// <summary>
+    /// Get user by id
+    /// </summary>
+    /// <param name="id">User id</param>
+    /// <returns>User or 404 error if user was not found</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(User), 200)]
     [ProducesResponseType(404)]
@@ -36,6 +44,11 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>
+    /// Add a user
+    /// </summary>
+    /// <param name="newUser">User details</param>
+    /// <returns>The added user</returns>
     [HttpPost]
     [ProducesResponseType(typeof(User), 200)]
     public IActionResult AddUser(User newUser)
