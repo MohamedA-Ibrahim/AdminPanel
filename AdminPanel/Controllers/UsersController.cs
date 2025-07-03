@@ -1,5 +1,6 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
+using AdminPanel.Validators;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -53,6 +54,11 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(User), 200)]
     public IActionResult AddUser(User newUser)
     {
+        var validator = new UserValidator();
+        var result = validator.Validate(newUser);
+        if (!result.IsValid)
+            return BadRequest(result.Errors);
+
         _userService.AddUser(newUser);
 
         return Ok(newUser);
