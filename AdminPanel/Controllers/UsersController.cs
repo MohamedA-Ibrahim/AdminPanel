@@ -1,6 +1,7 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
 using AdminPanel.Validators;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -51,7 +52,8 @@ public class UsersController : ControllerBase
     /// <param name="newUser">User details</param>
     /// <returns>The added user</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(User), 200)]
+    [ProducesResponseType(typeof(User), 201)]
+    [ProducesResponseType(typeof(List<ValidationFailure>), 400)]
     public IActionResult AddUser(User newUser)
     {
         var validator = new UserValidator();
@@ -61,6 +63,6 @@ public class UsersController : ControllerBase
 
         _userService.AddUser(newUser);
 
-        return Ok(newUser);
+        return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
     }
 }
