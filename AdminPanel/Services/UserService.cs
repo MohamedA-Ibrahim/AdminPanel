@@ -7,6 +7,7 @@ public interface IUserService
     User? GetById(Guid id);
     List<User> GetUsers();
     void AddUser(User user);
+    bool DeleteUser(Guid id);
 }
 
 public class UserService : IUserService
@@ -77,5 +78,16 @@ public class UserService : IUserService
     public void AddUser(User user)
     {
         _users.Add(user);
+    }
+
+    public bool DeleteUser(Guid id)
+    {
+        var user = GetById(id);
+        if (user is null)
+            return false;
+
+        _users.Remove(user);
+
+        return true;
     }
 }
