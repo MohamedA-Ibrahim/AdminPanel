@@ -61,6 +61,8 @@ public class UsersController : ControllerBase
         if (!result.IsValid)
             return BadRequest(result.ToString());
 
+        newUser.Id = Guid.NewGuid();
+
         _userService.AddUser(newUser);
 
         return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
