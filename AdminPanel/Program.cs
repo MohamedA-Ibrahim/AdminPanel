@@ -3,6 +3,16 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(options =>
+    {
+        options.WithOrigins("http://localhost:4200")
+               .AllowAnyHeader()
+               .WithMethods("GET", "POST", "PUT", "DELETE");
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(sg =>
@@ -25,6 +35,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors();
 app.UseAuthorization();
 
 app.MapControllers();
