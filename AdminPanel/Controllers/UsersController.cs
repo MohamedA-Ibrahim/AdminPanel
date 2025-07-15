@@ -10,10 +10,11 @@ namespace AdminPanel.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
-
-    public UsersController(IUserService userService)
+    private readonly ILogger<UsersController> _logger;
+    public UsersController(IUserService userService, ILogger<UsersController> logger)
     {
         _userService = userService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -58,11 +59,18 @@ public class UsersController : ControllerBase
         var validator = new UserValidator();
         var result = await validator.ValidateAsync(newUser);
         if (!result.IsValid)
+        {
+            _logger.LogWarning("Validation failed for adding the user {userName}", newUser.FirstName);
+
             return BadRequest(result.ToString());
+        }
 
         newUser.Id = Guid.NewGuid();
 
         await _userService.AddAsync(newUser);
+
+
+        _logger.LogInformation("User {userName} added successfully.", newUser.FirstName);
 
         return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
     }
@@ -79,6 +87,8 @@ public class UsersController : ControllerBase
         var succeeded = await _userService.DeleteAsync(id);
         if (!succeeded)
             return BadRequest("User not found");
+
+        _logger.LogInformation("User {userId} deleted successfully.", id);
 
         return NoContent();
     }
