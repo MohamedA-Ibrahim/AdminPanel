@@ -1,3 +1,4 @@
+using AdminPanel.Middlewares;
 using AdminPanel.Services;
 using System.Reflection;
 
@@ -26,7 +27,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
