@@ -1,7 +1,6 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
 using AdminPanel.Validators;
-using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -22,9 +21,9 @@ public class UsersController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
-    public IActionResult GetUsers()
+    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
     {
-        var users = _userService.GetUsers();
+        var users = await _userService.GetUsersAsync(cancellationToken);
 
         return Ok(users);
     }
@@ -37,9 +36,9 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(User), 200)]
     [ProducesResponseType(404)]
-    public IActionResult GetById([FromRoute] Guid id)
+    public async Task<IActionResult> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
     {
-        var user = _userService.GetById(id);
+        var user = await _userService.GetByIdAsync(id, cancellationToken);
         if (user is null)
             return NotFound();
 
@@ -54,16 +53,16 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
-    public IActionResult AddUser(User newUser)
+    public async Task<IActionResult> AddUser(User newUser)
     {
         var validator = new UserValidator();
-        var result = validator.Validate(newUser);
+        var result = await validator.ValidateAsync(newUser);
         if (!result.IsValid)
             return BadRequest(result.ToString());
 
         newUser.Id = Guid.NewGuid();
 
-        _userService.AddUser(newUser);
+        await _userService.AddAsync(newUser);
 
         return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
     }
@@ -75,10 +74,10 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(string), 400)]
-    public IActionResult Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id)
     {
-        var succeeded = _userService.DeleteUser(id);
-        if(!succeeded)
+        var succeeded = await _userService.DeleteAsync(id);
+        if (!succeeded)
             return BadRequest("User not found");
 
         return NoContent();
