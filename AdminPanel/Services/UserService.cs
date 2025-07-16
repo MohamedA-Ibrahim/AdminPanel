@@ -4,10 +4,10 @@ namespace AdminPanel.Services;
 
 public interface IUserService
 {
-    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task<List<User>> GetUsersAsync(CancellationToken cancellationToken);
-    Task AddAsync(User user);
-    Task<bool> DeleteAsync(Guid id);
+    User? GetById(Guid id);
+    List<User> GetUsers();
+    void AddUser(User user);
+    bool DeleteUser(Guid id);
 }
 
 public class UserService : IUserService
@@ -64,25 +64,25 @@ public class UserService : IUserService
             },
     ];
 
-    public async Task<List<User>> GetUsersAsync(CancellationToken cancellationToken = default)
+    public List<User> GetUsers()
     {
         return _users;
 
     }
 
-    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public User? GetById(Guid id)
     {
         return _users.FirstOrDefault(u => u.Id == id);
     }
 
-    public async Task AddAsync(User user)
+    public void AddUser(User user)
     {
         _users.Add(user);
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public bool DeleteUser(Guid id)
     {
-        var user = await GetByIdAsync(id);
+        var user = GetById(id);
         if (user is null)
             return false;
 

@@ -1,6 +1,7 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
 using AdminPanel.Validators;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -10,11 +11,10 @@ namespace AdminPanel.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly ILogger<UsersController> _logger;
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
+
+    public UsersController(IUserService userService)
     {
         _userService = userService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -22,9 +22,9 @@ public class UsersController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
+    public IActionResult GetUsers()
     {
-        var users = await _userService.GetUsersAsync(cancellationToken);
+        var users = _userService.GetUsers();
 
         return Ok(users);
     }
@@ -37,9 +37,9 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(User), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+    public IActionResult GetById([FromRoute] Guid id)
     {
-        var user = await _userService.GetByIdAsync(id, cancellationToken);
+        var user = _userService.GetById(id);
         if (user is null)
             return NotFound();
 
@@ -54,23 +54,16 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
-    public async Task<IActionResult> AddUser(User newUser)
+    public IActionResult AddUser(User newUser)
     {
         var validator = new UserValidator();
-        var result = await validator.ValidateAsync(newUser);
+        var result = validator.Validate(newUser);
         if (!result.IsValid)
-        {
-            _logger.LogWarning("Validation failed for adding the user {userName}", newUser.FirstName);
-
             return BadRequest(result.ToString());
-        }
 
         newUser.Id = Guid.NewGuid();
 
-        await _userService.AddAsync(newUser);
-
-
-        _logger.LogInformation("User {userName} added successfully.", newUser.FirstName);
+        _userService.AddUser(newUser);
 
         return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
     }
@@ -82,13 +75,11 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(string), 400)]
-    public async Task<IActionResult> Delete(Guid id)
+    public IActionResult Delete(Guid id)
     {
-        var succeeded = await _userService.DeleteAsync(id);
-        if (!succeeded)
+        var succeeded = _userService.DeleteUser(id);
+        if(!succeeded)
             return BadRequest("User not found");
-
-        _logger.LogInformation("User {userId} deleted successfully.", id);
 
         return NoContent();
     }
