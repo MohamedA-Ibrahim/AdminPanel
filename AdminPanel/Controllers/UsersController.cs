@@ -56,18 +56,13 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(string), 400)]
     public async Task<IActionResult> AddUser(User newUser)
     {
-        var validator = new UserValidator();
-        var result = await validator.ValidateAsync(newUser);
-        if (!result.IsValid)
+        var result = await _userService.AddAsync(newUser);
+        if (!result.Succeeded)
         {
             _logger.LogWarning("Validation failed for adding the user {userName}", newUser.FirstName);
 
             return BadRequest(result.ToString());
         }
-
-        newUser.Id = Guid.NewGuid();
-
-        await _userService.AddAsync(newUser);
 
 
         _logger.LogInformation("User {userName} added successfully.", newUser.FirstName);

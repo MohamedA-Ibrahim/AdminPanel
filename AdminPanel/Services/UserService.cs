@@ -1,4 +1,5 @@
 ﻿using AdminPanel.Models;
+using AdminPanel.Validators;
 
 namespace AdminPanel.Services;
 
@@ -6,7 +7,7 @@ public interface IUserService
 {
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<List<User>> GetUsersAsync(CancellationToken cancellationToken);
-    Task AddAsync(User user);
+    Task<Result> AddAsync(User user);
     Task<bool> DeleteAsync(Guid id);
 }
 
@@ -75,9 +76,16 @@ public class UserService : IUserService
         return _users.FirstOrDefault(u => u.Id == id);
     }
 
-    public async Task AddAsync(User user)
+    public async Task<Result> AddAsync(User user)
     {
+        var validator = new UserValidator();
+        var result = await validator.ValidateAsync(user);
+        if(!result.IsValid)
+            return new Result(false, result.ToString());
+
         _users.Add(user);
+
+        return new Result(true);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
