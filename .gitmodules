@@ -1,0 +1,3 @@
+[submodule "AdminPanelFrontend"]
+	path = AdminPanelFrontend
+	url = https://github.com/MohamedA-Ibrahim/AdminPanelFrontend/
