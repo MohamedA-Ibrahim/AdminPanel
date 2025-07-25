@@ -32,7 +32,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           title: "Update Submodule to Latest Commit"
-          body: "This PR updates the submodule to the latest commit on its default branch."
+          body: "[Auto Generated] This PR updates the submodule to the latest commit on its default branch."
           branch: update-submodule-${{ github.run_id }}
           commit-message: "Update submodule to latest commit"
           base: master
