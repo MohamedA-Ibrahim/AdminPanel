@@ -42,5 +42,4 @@ jobs:
           token: ${{ secrets.PAT }}
           title: "Update Submodule to Latest Commit"
           body: "This PR updates the submodule to the latest commit on its default branch."
-          head: ${{ env.BRANCH_NAME }}
           base: master
