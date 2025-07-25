@@ -27,19 +27,12 @@ jobs:
         run: |
           git submodule update --init --recursive --remote -f
 
-      - name: Create new branch and commit
-        run: |
-          BRANCH_NAME="update-submodule-$(date +%s)"
-          git checkout -b $BRANCH_NAME
-          git add AdminPanelFrontend
-          git commit -m "Update submodule to latest commit"
-          git push origin $BRANCH_NAME
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT }}
           title: "Update Submodule to Latest Commit"
           body: "This PR updates the submodule to the latest commit on its default branch."
+          branch: "update-submodule-$(date +%s)"
+          commit-message: "Update submodule to latest commit"
           base: master
