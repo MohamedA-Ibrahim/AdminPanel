@@ -1,5 +1,7 @@
-﻿using AdminPanel.Models;
+﻿using AdminPanel.Data;
+using AdminPanel.Models;
 using AdminPanel.Validators;
+using Microsoft.EntityFrameworkCore;
 
 namespace AdminPanel.Services;
 
@@ -13,67 +15,24 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    private static readonly List<User> _users =
-    [
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Alice",
-                LastName = "Johnson",
-                Email = "alice.johnson@example.com",
-                Phone = "01123456789"
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Omar",
-                LastName = "Hassan",
-                Email = "omar.hassan@example.com",
-                Phone = "01234567890"
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Fatima",
-                LastName = "Yousef",
-                Email = "fatima.yousef@example.com",
-                Phone = "01098765432"
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "John",
-                LastName = "Doe",
-                Email = "john.doe@example.com",
-                Phone = "01555555555"
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Sara",
-                LastName = "Ahmed",
-                Email = "sara.ahmed@example.com",
-                Phone = "01299887766"
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Khaled",
-                LastName = "Nabil",
-                Email = "khaled.nabil@example.com",
-                Phone = "01011223344"
-            },
-    ];
+    private readonly AppDbContext _dbContext;
+
+    public UserService(AppDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
 
     public async Task<List<User>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
-        return _users;
+        return await _dbContext.Users
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
 
     }
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return _users.FirstOrDefault(u => u.Id == id);
+        return await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
     public async Task<Result> AddAsync(User user)
@@ -83,7 +42,8 @@ public class UserService : IUserService
         if(!result.IsValid)
             return new Result(false, result.ToString());
 
-        _users.Add(user);
+        await _dbContext.Users.AddAsync(user);
+        await _dbContext.SaveChangesAsync();
 
         return new Result(true);
     }
@@ -94,7 +54,8 @@ public class UserService : IUserService
         if (user is null)
             return false;
 
-        _users.Remove(user);
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
 
         return true;
     }
