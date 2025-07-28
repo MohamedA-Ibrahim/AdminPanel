@@ -1,5 +1,7 @@
+using AdminPanel.Data;
 using AdminPanel.Middlewares;
 using AdminPanel.Services;
+using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,10 @@ builder.Services.AddSwaggerGen(sg =>
 });
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 var app = builder.Build();
 
