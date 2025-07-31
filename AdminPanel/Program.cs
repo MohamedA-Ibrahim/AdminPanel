@@ -79,6 +79,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     });
 });
 
+builder.Services.AddAuthentication()
+    .AddJwtBearer(options =>
+    {
+        options.Authority = "https://localhost:5001";
+        options.TokenValidationParameters.ValidateAudience = false;
+        options.TokenValidationParameters.ValidTypes = new[] { "at+jwt" };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
