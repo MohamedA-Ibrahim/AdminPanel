@@ -2,13 +2,14 @@
 using AdminPanel.Models;
 using AdminPanel.Validators;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace AdminPanel.Services;
 
 public interface IUserService
 {
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task<List<User>> GetUsersAsync(CancellationToken cancellationToken);
+    Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken);
     Task<Result> AddAsync(User user);
     Task<bool> DeleteAsync(Guid id);
 }
@@ -22,9 +23,34 @@ public class UserService : IUserService
         _dbContext = dbContext;
     }
 
-    public async Task<List<User>> GetUsersAsync(CancellationToken cancellationToken = default)
+    public async Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Users
+        var query = _dbContext.Users.AsQueryable();
+
+        if (filter.FirstName is not null)
+        {
+            query = query.Where(u => u.FirstName.Contains(filter.FirstName));
+        }
+
+        if (filter.Email is not null)
+        {
+            query = query.Where(u => u.Email.Contains(filter.Email));
+        }
+
+        if (filter.OrderBy is not null)
+        {
+            query = filter.OrderBy switch
+            {
+                GetUserOrderBy.FirstName => filter.OrderASC ? query.OrderBy(u => u.FirstName) : query.OrderByDescending(u => u.FirstName),
+                GetUserOrderBy.LastName => filter.OrderASC ? query.OrderBy(u => u.LastName) : query.OrderByDescending(u => u.LastName),
+                GetUserOrderBy.Email => filter.OrderASC ? query.OrderBy(u => u.Email) : query.OrderByDescending(u => u.Email),
+                GetUserOrderBy.Phone => filter.OrderASC ? query.OrderBy(u => u.Phone) : query.OrderByDescending(u => u.Phone),
+                _ => throw new NotImplementedException(),
+            };
+        }
+
+
+        return await query
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -39,7 +65,7 @@ public class UserService : IUserService
     {
         var validator = new UserValidator();
         var result = await validator.ValidateAsync(user);
-        if(!result.IsValid)
+        if (!result.IsValid)
             return new Result(false, result.ToString());
 
         await _dbContext.Users.AddAsync(user);
