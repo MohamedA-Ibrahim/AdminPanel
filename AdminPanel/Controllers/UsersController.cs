@@ -1,6 +1,6 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
-using AdminPanel.Validators;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -20,11 +20,24 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Return list of users
     /// </summary>
+    [HttpGet("claims")]
+    [Authorize]
+    public async Task<IActionResult> GetUserClaims(CancellationToken cancellationToken)
+    {
+        var claims = HttpContext.User.Claims.Select(c => new { c.Type, c.Value });
+
+        return Ok(claims);
+    }
+
+
+    /// <summary>
+    /// Return list of users
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUsers([FromQuery]GetUsersFilter filter, CancellationToken cancellationToken)
     {
-        var users = await _userService.GetUsersAsync(cancellationToken);
+        var users = await _userService.GetUsersAsync(filter, cancellationToken);
 
         return Ok(users);
     }
