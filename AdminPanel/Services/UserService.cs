@@ -27,14 +27,9 @@ public class UserService : IUserService
     {
         var query = _dbContext.Users.AsQueryable();
 
-        if (filter.FirstName is not null)
+        if (filter.Search is not null)
         {
-            query = query.Where(u => u.FirstName.Contains(filter.FirstName));
-        }
-
-        if (filter.Email is not null)
-        {
-            query = query.Where(u => u.Email.Contains(filter.Email));
+            query = query.Where(u => u.FirstName.Contains(filter.Search) || u.LastName.Contains(filter.Search) || u.Email.Contains(filter.Search));
         }
 
         if (filter.OrderBy is not null)
