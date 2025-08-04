@@ -1,8 +1,12 @@
+using AdminPanel.Identity.Data;
+using AdminPanel.Identity.Models;
 using Duende.IdentityServer.EntityFramework.DbContexts;
 using Duende.IdentityServer.EntityFramework.Mappers;
 using Duende.IdentityServer.Test;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace AdminPanel.Identity
 {
@@ -16,7 +20,17 @@ namespace AdminPanel.Identity
             var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+            builder.Services.AddDbContext<AppDbContext>((serviceProvider, dbContextOptionsBuilder) =>
+            {
+                dbContextOptionsBuilder.UseSqlServer(connectionString);
+            });
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
+
             builder.Services.AddIdentityServer()
+                .AddAspNetIdentity<ApplicationUser>()
                 .AddConfigurationStore(options =>
                 {
                     options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
@@ -50,45 +64,56 @@ namespace AdminPanel.Identity
             //app.UseAuthorization();
             //app.MapRazorPages().RequireAuthorization();
 
-            InitializeDatabase(app);
-
             return app;
         }
 
-        private static void InitializeDatabase(IApplicationBuilder app)
+        public static async Task InitializeDatabase(IApplicationBuilder app)
         {
-            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>()!.CreateScope())
+            using var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>()!.CreateScope();
+
+            await serviceScope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+            await serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.MigrateAsync();
+            await serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>().Database.MigrateAsync();
+
+            var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            if (await userManager.FindByNameAsync("thomas.clark") == null)
             {
-                serviceScope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
-
-                var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
-                context.Database.Migrate();
-                if (!context.Clients.Any())
-                {
-                    foreach (var client in Config.Clients)
+                await userManager.CreateAsync(
+                    new ApplicationUser
                     {
-                        context.Clients.Add(client.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
+                        UserName = "thomas.clark",
+                        Email = "thomas.clark@example.com"
+                    }, "Pa55w0rd!");
+            }
 
-                if (!context.IdentityResources.Any())
-                {
-                    foreach (var resource in Config.IdentityResources)
-                    {
-                        context.IdentityResources.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
-                }
+            var configurationDbContext = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
 
-                if (!context.ApiScopes.Any())
+            if (!await configurationDbContext.Clients.AnyAsync())
+            {
+                foreach (var client in Config.Clients)
                 {
-                    foreach (var resource in Config.ApiScopes)
-                    {
-                        context.ApiScopes.Add(resource.ToEntity());
-                    }
-                    context.SaveChanges();
+                    configurationDbContext.Clients.Add(client.ToEntity());
                 }
+                configurationDbContext.SaveChanges();
+            }
+
+            if (!configurationDbContext.IdentityResources.Any())
+            {
+                foreach (var resource in Config.IdentityResources)
+                {
+                    configurationDbContext.IdentityResources.Add(resource.ToEntity());
+                }
+                configurationDbContext.SaveChanges();
+            }
+
+            if (!configurationDbContext.ApiScopes.Any())
+            {
+                foreach (var resource in Config.ApiScopes)
+                {
+                    configurationDbContext.ApiScopes.Add(resource.ToEntity());
+                }
+                configurationDbContext.SaveChanges();
             }
         }
     }

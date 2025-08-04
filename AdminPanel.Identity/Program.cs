@@ -23,6 +23,8 @@ try
         .ConfigureServices()
         .ConfigurePipeline();
 
+    await HostingExtensions.InitializeDatabase(app);
+
     if (app.Environment.IsDevelopment())
     {
         app.Lifetime.ApplicationStopping.Register(() =>
