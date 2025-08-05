@@ -17,6 +17,8 @@ namespace AdminPanel.Identity
             // uncomment if you want to add a UI
             //builder.Services.AddRazorPages();
 
+            builder.Services.AddControllers();
+
             var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -63,6 +65,8 @@ namespace AdminPanel.Identity
             // uncomment if you want to add a UI
             //app.UseAuthorization();
             //app.MapRazorPages().RequireAuthorization();
+
+            app.MapControllers();
 
             return app;
         }

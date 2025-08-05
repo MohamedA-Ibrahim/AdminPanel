@@ -7,7 +7,7 @@ namespace AdminPanel.Identity
         public static IEnumerable<IdentityResource> IdentityResources =>
             new IdentityResource[]
             {
-                new IdentityResources.OpenId()
+                new IdentityResources.OpenId(),
             };
 
         public static IEnumerable<ApiScope> ApiScopes =>
@@ -19,7 +19,7 @@ namespace AdminPanel.Identity
                 {
                     new Client
                     {
-                        ClientId = "4ecc4153-daf9-4eca-8b60-818a63637a81",
+                        ClientId = "pat.client",
                         AllowedGrantTypes = GrantTypes.Code,
                         ClientSecrets =
                         {
