@@ -67,6 +67,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
+    [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
         var result = await _userService.AddAsync(newUser);
@@ -90,6 +91,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(string), 400)]
+    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
         var succeeded = await _userService.DeleteAsync(id);
