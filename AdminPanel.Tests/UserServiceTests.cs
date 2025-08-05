@@ -1,5 +1,7 @@
-﻿using AdminPanel.Models;
+﻿using AdminPanel.Data;
+using AdminPanel.Models;
 using AdminPanel.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AdminPanel.Tests;
 
@@ -9,7 +11,12 @@ public class UserServiceTests
 
     public UserServiceTests()
     {
-        _userService = new UserService();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+       var context = new AppDbContext(options);
+        _userService = new UserService(context);
     }
 
     [Fact]
@@ -19,11 +26,11 @@ public class UserServiceTests
         var cancellationToken = CancellationToken.None;
 
         // Act
-        var users = await _userService.GetUsersAsync(cancellationToken);
+        var users = await _userService.GetUsersAsync(new GetUsersFilter(), cancellationToken);
 
         // Assert
         Assert.NotNull(users);
-        Assert.NotEmpty(users);
+        Assert.Empty(users);
     }
 
     [Fact]
@@ -76,9 +83,9 @@ public class UserServiceTests
 
         // Act
         var result = await _userService.AddAsync(newUser);
-        
+
         // Assert
-        var users = await _userService.GetUsersAsync(CancellationToken.None);
+        var users = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(users);
@@ -118,16 +125,16 @@ public class UserServiceTests
             Email = "user@gmail.com",
             Phone = "0512354564"
         };
-         await _userService.AddAsync(newUser);
+        await _userService.AddAsync(newUser);
 
         // Act
         var success = await _userService.DeleteAsync(newUser.Id);
-        
+
         // Assert
-        var users = await _userService.GetUsersAsync(CancellationToken.None);
+        var users = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
 
         Assert.True(success);
-        Assert.DoesNotContain(users, u => u.Id == newUser.Id );
+        Assert.DoesNotContain(users, u => u.Id == newUser.Id);
     }
 
     [Fact]
@@ -141,5 +148,28 @@ public class UserServiceTests
 
         // Assert
         Assert.False(success);
+    }
+
+    private static List<User> GetFakeUserList()
+    {
+        return
+        [
+            new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "John",
+                LastName = "Doe",
+                Email = "J.D@gmail.com",
+                Phone = "123-456-7890"
+            },
+            new User
+            {
+                Id =Guid.NewGuid(),
+                FirstName = "Mark",
+                LastName = "Luther",
+                Email = "M.L@gmail.com",
+                Phone = "123-456-7890"
+            }
+        ];
     }
 }
