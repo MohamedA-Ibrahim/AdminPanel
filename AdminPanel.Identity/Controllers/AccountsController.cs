@@ -53,7 +53,7 @@ public class AccountsController : ControllerBase
 
         var tokenString = await _tokenService.CreateSecurityTokenAsync(token);
 
-        return Ok(new { token = tokenString });
+        return Ok(new { token = tokenString, userName= model.UserName});
     }
 
     public record LoginRequestModel(string UserName, string Password, string? ReturnUrl, bool IsPersistent = false);
