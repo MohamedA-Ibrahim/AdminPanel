@@ -22,11 +22,11 @@ public class UsersController : ControllerBase
     /// </summary>
     [HttpGet("claims")]
     [Authorize]
-    public async Task<IActionResult> GetUserClaims(CancellationToken cancellationToken)
+    public Task<IActionResult> GetUserClaims()
     {
         var claims = HttpContext.User.Claims.Select(c => new { c.Type, c.Value });
 
-        return Ok(claims);
+        return Task.FromResult<IActionResult>(Ok(claims));
     }
 
 
@@ -46,6 +46,7 @@ public class UsersController : ControllerBase
     /// Get user by id
     /// </summary>
     /// <param name="id">User id</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>User or 404 error if user was not found</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(User), 200)]
