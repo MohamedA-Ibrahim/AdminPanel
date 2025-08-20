@@ -20,21 +20,28 @@ public class UserService : IUserService
     private readonly AppDbContext _dbContext;
     private readonly IConnectionMultiplexer _redisCache;
     private readonly IDatabaseAsync _redisDatabase;
+    private readonly IConfiguration _configuration;
 
-    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer)
+    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration)
     {
         _dbContext = dbContext;
         _redisCache = connectionMultiplexer;
         _redisDatabase = _redisCache.GetDatabase();
+        _configuration = configuration;
     }
 
     public async Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
     {
+        var redisEnabled = _configuration.GetValue<bool>("Redis:Enabled");
         var cacheKey = $"users:all_{filter.Search}_{filter.OrderBy}_{filter.OrderASC}";
-        var cachedUsers = await _redisDatabase.StringGetAsync(cacheKey);
-        if (cachedUsers.HasValue)
+
+        if (redisEnabled)
         {
-            return JsonSerializer.Deserialize<List<User>>(cachedUsers);
+            var cachedUsers = await _redisDatabase.StringGetAsync(cacheKey);
+            if (cachedUsers.HasValue)
+            {
+                return JsonSerializer.Deserialize<List<User>>(cachedUsers);
+            }
         }
 
         var query = _dbContext.Users.AsQueryable();
@@ -56,12 +63,12 @@ public class UserService : IUserService
             };
         }
 
-
         var users =  await query
             .AsNoTracking()
             .ToListAsync(cancellationToken);
-
-        await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
+        
+        if(redisEnabled)
+            await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
 
         return users;
     }
@@ -69,14 +76,21 @@ public class UserService : IUserService
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var cacheKey = $"users:{id}";
-        var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-        if (cachedUser.HasValue)
+        var redisEnabled = _configuration.GetValue<bool>("Redis:Enabled");
+
+        if (redisEnabled)
         {
-            return JsonSerializer.Deserialize<User>(cachedUser);
+            var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
+            if (cachedUser.HasValue)
+            {
+                return JsonSerializer.Deserialize<User>(cachedUser);
+            }
         }
 
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-        await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(5));
+
+        if(redisEnabled)
+            await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(5));
 
         return user;
 

@@ -90,12 +90,16 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
-   return ConnectionMultiplexer.Connect(new ConfigurationOptions()
+    var connectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString");
+
+    return ConnectionMultiplexer.Connect(new ConfigurationOptions()
     {
-        EndPoints = { "localhost:6379" },
-        AbortOnConnectFail = false
+        EndPoints = { connectionString },
+        AbortOnConnectFail = false,
+       
 
     });
 });
