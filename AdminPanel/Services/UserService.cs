@@ -9,8 +9,8 @@ namespace AdminPanel.Services;
 
 public interface IUserService
 {
-    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken);
+    Task<CachedResult<User?>> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<CachedResult<List<User>>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken);
     Task<Result> AddAsync(User user);
     Task<bool> DeleteAsync(Guid id);
 }
@@ -30,7 +30,7 @@ public class UserService : IUserService
         _configuration = configuration;
     }
 
-    public async Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
+    public async Task<CachedResult<List<User>>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
     {
         var redisEnabled = _configuration.GetValue<bool>("Redis:Enabled");
         var cacheKey = $"users:all_{filter.Search}_{filter.OrderBy}_{filter.OrderASC}";
@@ -40,7 +40,8 @@ public class UserService : IUserService
             var cachedUsers = await _redisDatabase.StringGetAsync(cacheKey);
             if (cachedUsers.HasValue)
             {
-                return JsonSerializer.Deserialize<List<User>>(cachedUsers);
+                var deseralizedUsers = JsonSerializer.Deserialize<List<User>>(cachedUsers);
+                return new CachedResult<List<User>>(deseralizedUsers, true);
             }
         }
 
@@ -70,10 +71,10 @@ public class UserService : IUserService
         if(redisEnabled)
             await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
 
-        return users;
+        return new CachedResult<List<User>>(users,false);
     }
 
-    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<CachedResult<User?>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var cacheKey = $"users:{id}";
         var redisEnabled = _configuration.GetValue<bool>("Redis:Enabled");
@@ -83,7 +84,8 @@ public class UserService : IUserService
             var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
             if (cachedUser.HasValue)
             {
-                return JsonSerializer.Deserialize<User>(cachedUser);
+                var deseralizedUser = JsonSerializer.Deserialize<User>(cachedUser);
+                return new CachedResult<User?>(deseralizedUser, true);
             }
         }
 
@@ -92,7 +94,7 @@ public class UserService : IUserService
         if(redisEnabled)
             await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(5));
 
-        return user;
+        return new CachedResult<User?>(user, false);
 
     }
 
@@ -111,7 +113,9 @@ public class UserService : IUserService
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await GetByIdAsync(id);
+        var userResult = await GetByIdAsync(id);
+        var user = userResult.Data;
+
         if (user is null)
             return false;
 
