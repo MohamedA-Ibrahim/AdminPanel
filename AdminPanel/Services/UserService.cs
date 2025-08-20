@@ -2,7 +2,8 @@
 using AdminPanel.Models;
 using AdminPanel.Validators;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using StackExchange.Redis;
+using System.Text.Json;
 
 namespace AdminPanel.Services;
 
@@ -17,14 +18,25 @@ public interface IUserService
 public class UserService : IUserService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IConnectionMultiplexer _redisCache;
+    private readonly IDatabaseAsync _redisDatabase;
 
-    public UserService(AppDbContext dbContext)
+    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer)
     {
         _dbContext = dbContext;
+        _redisCache = connectionMultiplexer;
+        _redisDatabase = _redisCache.GetDatabase();
     }
 
     public async Task<List<User>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"users:all_{filter.Search}_{filter.OrderBy}_{filter.OrderASC}";
+        var cachedUsers = await _redisDatabase.StringGetAsync(cacheKey);
+        if (cachedUsers.HasValue)
+        {
+            return JsonSerializer.Deserialize<List<User>>(cachedUsers);
+        }
+
         var query = _dbContext.Users.AsQueryable();
 
         if (filter.Search is not null)
@@ -45,15 +57,29 @@ public class UserService : IUserService
         }
 
 
-        return await query
+        var users =  await query
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
+        await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
+
+        return users;
     }
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        var cacheKey = $"users:{id}";
+        var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
+        if (cachedUser.HasValue)
+        {
+            return JsonSerializer.Deserialize<User>(cachedUser);
+        }
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(5));
+
+        return user;
+
     }
 
     public async Task<Result> AddAsync(User user)
