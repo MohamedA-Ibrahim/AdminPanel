@@ -14,7 +14,8 @@ builder.Services.AddCors(options =>
     {
         options.WithOrigins("http://localhost:4200")
                .AllowAnyHeader()
-               .WithMethods("GET", "POST", "PUT", "DELETE");
+               .WithMethods("GET", "POST", "PUT", "DELETE")
+               .WithExposedHeaders("X-Cache");
     });
 });
 
