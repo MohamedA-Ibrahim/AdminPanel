@@ -3,6 +3,7 @@ using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -89,7 +90,15 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+   return ConnectionMultiplexer.Connect(new ConfigurationOptions()
+    {
+        EndPoints = { "localhost:6379" },
+        AbortOnConnectFail = false
 
+    });
+});
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
