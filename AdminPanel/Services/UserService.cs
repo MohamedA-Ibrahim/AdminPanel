@@ -64,14 +64,19 @@ public class UserService : IUserService
             };
         }
 
-        var users =  await query
+        var users = await query
             .AsNoTracking()
             .ToListAsync(cancellationToken);
-        
-        if(redisEnabled)
+
+        if (redisEnabled)
+        {
             await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
 
-        return new CachedResult<List<User>>(users,false);
+            await _redisDatabase.SetAddAsync("users:all_keys", cacheKey);
+
+        }
+
+        return new CachedResult<List<User>>(users, false);
     }
 
     public async Task<CachedResult<User?>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -91,7 +96,7 @@ public class UserService : IUserService
 
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
-        if(redisEnabled)
+        if (redisEnabled)
             await _redisDatabase.StringSetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(5));
 
         return new CachedResult<User?>(user, false);
@@ -108,6 +113,8 @@ public class UserService : IUserService
         await _dbContext.Users.AddAsync(user);
         await _dbContext.SaveChangesAsync();
 
+        await InvalidateUserCacheAsync();
+        
         return new Result(true);
     }
 
@@ -122,6 +129,28 @@ public class UserService : IUserService
         _dbContext.Users.Remove(user);
         await _dbContext.SaveChangesAsync();
 
+        await InvalidateUserCacheAsync(id);
         return true;
+    }
+
+    private async Task InvalidateUserCacheAsync(Guid? userId = null)
+    {
+        var redisEnabled = _configuration.GetValue<bool>("Redis:Enabled");
+        if (!redisEnabled) return;
+
+        if (userId is not null)
+        {
+            var userKey = $"users:{userId}";
+            await _redisDatabase.KeyDeleteAsync(userKey);
+        }
+
+        var userListCacheKeyValues = await _redisDatabase.SetMembersAsync("users:all_keys");
+        var userListCacheKeys = userListCacheKeyValues.Select(k => new RedisKey(k)).ToArray();
+
+        if (userListCacheKeys.Length > 0)
+            await _redisDatabase.KeyDeleteAsync(userListCacheKeys);
+
+        await _redisDatabase.KeyDeleteAsync("users:all_keys");
+
     }
 }
