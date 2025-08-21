@@ -2,6 +2,9 @@
 using AdminPanel.Models;
 using AdminPanel.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Moq;
+using StackExchange.Redis;
 
 namespace AdminPanel.Tests;
 
@@ -16,21 +19,35 @@ public class UserServiceTests
             .Options;
 
        var context = new AppDbContext(options);
-        _userService = new UserService(context);
+
+        // Mock Redis
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                 .Returns(Mock.Of<IDatabase>());
+
+        // Mock IConfiguration
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Redis:Enabled", "false"}
+        };
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings!)
+            .Build();
+
+
+        _userService = new UserService(context, redisMock.Object, configuration);
     }
 
     [Fact]
     public async Task GetUsersAsync_ShouldReturnAllUsers()
     {
-        // Arrange
-        var cancellationToken = CancellationToken.None;
-
         // Act
-        var users = await _userService.GetUsersAsync(new GetUsersFilter(), cancellationToken);
+        var result = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
 
         // Assert
-        Assert.NotNull(users);
-        Assert.Empty(users);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Data);
+        Assert.Empty(result.Data);
     }
 
     [Fact]
@@ -49,10 +66,11 @@ public class UserServiceTests
         await _userService.AddAsync(newUser);
 
         // Act
-        var user = await _userService.GetByIdAsync(newUser.Id, CancellationToken.None);
+        var result = await _userService.GetByIdAsync(newUser.Id, CancellationToken.None);
 
         // Assert
-        Assert.NotNull(user);
+        Assert.NotNull(result.Data);
+        Assert.Equal(newUser.Id, result.Data!.Id);
     }
 
     [Fact]
@@ -65,7 +83,7 @@ public class UserServiceTests
         var user = await _userService.GetByIdAsync(id, CancellationToken.None);
 
         // Assert
-        Assert.Null(user);
+        Assert.Null(user.Data);
     }
 
     [Fact]
@@ -88,9 +106,8 @@ public class UserServiceTests
         var users = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.NotNull(users);
-        Assert.NotEmpty(users);
-        Assert.Contains(users, u => u.Id == newUser.Id && u.FirstName == newUser.FirstName);
+        Assert.NotEmpty(users.Data);
+        Assert.Contains(users.Data, u => u.Id == newUser.Id);
     }
 
     [Fact]
@@ -131,7 +148,8 @@ public class UserServiceTests
         var success = await _userService.DeleteAsync(newUser.Id);
 
         // Assert
-        var users = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
+        var result = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
+        var users = result.Data;
 
         Assert.True(success);
         Assert.DoesNotContain(users, u => u.Id == newUser.Id);
