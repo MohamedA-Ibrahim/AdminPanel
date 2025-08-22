@@ -1,6 +1,6 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
-using AdminPanel.Validators;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AdminPanel.Controllers;
@@ -20,11 +20,24 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Return list of users
     /// </summary>
+    [HttpGet("claims")]
+    [Authorize]
+    public Task<IActionResult> GetUserClaims()
+    {
+        var claims = HttpContext.User.Claims.Select(c => new { c.Type, c.Value });
+
+        return Task.FromResult<IActionResult>(Ok(claims));
+    }
+
+
+    /// <summary>
+    /// Return list of users
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUsers([FromQuery]GetUsersFilter filter, CancellationToken cancellationToken)
     {
-        var users = await _userService.GetUsersAsync(cancellationToken);
+        var users = await _userService.GetUsersAsync(filter, cancellationToken);
 
         return Ok(users);
     }
@@ -33,6 +46,7 @@ public class UsersController : ControllerBase
     /// Get user by id
     /// </summary>
     /// <param name="id">User id</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>User or 404 error if user was not found</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(User), 200)]
@@ -54,6 +68,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
+    [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
         var result = await _userService.AddAsync(newUser);
@@ -77,6 +92,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(string), 400)]
+    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
         var succeeded = await _userService.DeleteAsync(id);
