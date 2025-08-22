@@ -41,6 +41,30 @@ public class UserServiceTests
     [Fact]
     public async Task GetUsersAsync_ShouldReturnAllUsers()
     {
+        //Arrange
+        var newUser = new User
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Test",
+            LastName = "User",
+            Email = "user@gmail.com",
+            Phone = "0512354564"
+        };
+
+        await _userService.AddAsync(newUser);
+
+        // Act
+        var result = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data);
+    }
+
+    [Fact]
+    public async Task GetUsersAsync_WhenNoUsersWereAdded_ShouldReturnEmptyList()
+    {
         // Act
         var result = await _userService.GetUsersAsync(new GetUsersFilter(), CancellationToken.None);
 
