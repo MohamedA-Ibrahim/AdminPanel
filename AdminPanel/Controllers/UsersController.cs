@@ -35,9 +35,13 @@ public class UsersController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<User>), 200)]
-    public async Task<IActionResult> GetUsers([FromQuery]GetUsersFilter filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUsers([FromQuery] GetUsersFilter filter, CancellationToken cancellationToken)
     {
-        var users = await _userService.GetUsersAsync(filter, cancellationToken);
+        var result = await _userService.GetUsersAsync(filter, cancellationToken);
+        var users = result.Data;
+        
+        var cacheHeader = result.CacheHit ? "HIT" : "MISS";
+        Response.Headers.Append("X-Cache", cacheHeader);
 
         return Ok(users);
     }
@@ -53,7 +57,12 @@ public class UsersController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
     {
-        var user = await _userService.GetByIdAsync(id, cancellationToken);
+        var result = await _userService.GetByIdAsync(id, cancellationToken);
+        var user = result.Data;
+
+        var cacheHeader = result.CacheHit ? "HIT" : "MISS";
+        Response.Headers.Append("X-Cache", cacheHeader);
+
         if (user is null)
             return NotFound();
 

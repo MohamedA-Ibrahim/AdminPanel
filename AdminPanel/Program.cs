@@ -3,6 +3,7 @@ using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,7 +14,8 @@ builder.Services.AddCors(options =>
     {
         options.WithOrigins("http://localhost:4200")
                .AllowAnyHeader()
-               .WithMethods("GET", "POST", "PUT", "DELETE");
+               .WithMethods("GET", "POST", "PUT", "DELETE")
+               .WithExposedHeaders("X-Cache");
     });
 });
 
@@ -90,6 +92,18 @@ builder.Services.AddAuthentication()
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var connectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString");
+
+    return ConnectionMultiplexer.Connect(new ConfigurationOptions()
+    {
+        EndPoints = { connectionString },
+        AbortOnConnectFail = false,
+       
+
+    });
+});
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
