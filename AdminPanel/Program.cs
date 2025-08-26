@@ -3,6 +3,7 @@ using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using StackExchange.Redis;
 using System.Reflection;
 
@@ -104,6 +105,16 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
     });
 });
+
+var serviceBusConnection = builder.Configuration.GetConnectionString("AzureServiceBus");
+
+builder.Services.AddAzureClients(builder =>
+{
+    builder.AddServiceBusClient(serviceBusConnection);
+});
+
+builder.Services.AddHostedService<ConsumerBackgroundService>();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
