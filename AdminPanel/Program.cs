@@ -113,7 +113,7 @@ builder.Services.AddAzureClients(builder =>
     builder.AddServiceBusClient(serviceBusConnection);
 });
 
-builder.Services.AddHostedService<ConsumerBackgroundService>();
+builder.Services.AddHostedService<AddUserQueueService>();
 
 var app = builder.Build();
 
