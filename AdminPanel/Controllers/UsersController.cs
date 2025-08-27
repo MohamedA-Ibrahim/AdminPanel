@@ -45,7 +45,7 @@ public class UsersController : ControllerBase
     {
         var result = await _userService.GetUsersAsync(filter, cancellationToken);
         var users = result.Data;
-        
+
         var cacheHeader = result.CacheHit ? "HIT" : "MISS";
         Response.Headers.Append("X-Cache", cacheHeader);
 
@@ -86,6 +86,8 @@ public class UsersController : ControllerBase
     [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
+        newUser.Id = Guid.NewGuid();
+
         var serializedUser = JsonSerializer.Serialize(newUser);
 
         var sender = _serviceBusClient.CreateSender("queue.1");
@@ -95,8 +97,8 @@ public class UsersController : ControllerBase
 
         _logger.LogInformation("User {userName} queued for addition", newUser.FirstName);
 
-        return Accepted();
-     }
+        return Accepted(new { id = newUser.Id });
+    }
 
     /// <summary>
     /// Delete a user
