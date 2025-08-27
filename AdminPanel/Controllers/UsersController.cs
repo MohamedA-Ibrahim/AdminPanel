@@ -93,6 +93,8 @@ public class UsersController : ControllerBase
 
         await sender.SendMessageAsync(message);
 
+        _logger.LogInformation("User {userName} queued for addition", newUser.FirstName);
+
         return Accepted();
      }
 

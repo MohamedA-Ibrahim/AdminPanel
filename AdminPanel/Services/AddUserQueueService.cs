@@ -32,21 +32,46 @@ public class AddUserQueueService : BackgroundService
         var body = args.Message.Body.ToString();
         var user = JsonSerializer.Deserialize<User>(body);
         if (user == null)
+        {
+            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", "Failed to deserialize user object");
             return;
+        }
 
         using var scope = _scopeFactory.CreateScope();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
-        var result = await userService.AddAsync(user);
-        if(!result.Succeeded)
+        try
         {
-            _logger.LogError("Failed to add user: {userName} with error: {errorMessage}", user.FirstName, result.Message);
-            return;
+
+            var result = await userService.AddAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new Exception(result.Message);
+            }
+
+            _logger.LogInformation("User {userName} added successfully", user.FirstName);
+
+            await args.CompleteMessageAsync(args.Message);
         }
+        catch (Exception ex)
+        {
+            int deliveryCount = args.Message.DeliveryCount;
 
-        _logger.LogInformation("User {userName} added successfully", user.FirstName);
+            if (deliveryCount < 3)
+            {
+                _logger.LogWarning(ex, "Processing failed for user {userName}. Retrying... Attempt {deliveryCount}", user?.FirstName, deliveryCount);
+                await args.AbandonMessageAsync(args.Message);
+                return;
+            }
 
-        await args.CompleteMessageAsync(args.Message);
+            _logger.LogError(ex, "Adding user {userName} failed {deliveryCount} times. Terminating.", user?.FirstName, deliveryCount);
+
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                "MaxDeliveryAttempts",
+                $"Processing failed after {deliveryCount} attempts: {ex.Message}"
+            );
+        }
     }
 
     private Task ErrorHandler(ProcessErrorEventArgs args)
