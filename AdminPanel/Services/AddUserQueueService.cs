@@ -30,6 +30,10 @@ public class AddUserQueueService : BackgroundService
     private async Task MessageHandler(ProcessMessageEventArgs args)
     {
         var body = args.Message.Body.ToString();
+        var correlationId = args.Message.CorrelationId;
+
+        _logger.LogInformation("Message with correlationId {CorrelationId} began processing", correlationId);
+
         var user = JsonSerializer.Deserialize<User>(body);
         if (user == null)
         {

@@ -92,10 +92,12 @@ public class UsersController : ControllerBase
 
         var sender = _serviceBusClient.CreateSender("queue.1");
         var message = new ServiceBusMessage(serializedUser);
+        
+        message.CorrelationId = newUser.Id.ToString();
 
         await sender.SendMessageAsync(message);
 
-        _logger.LogInformation("User {userName} queued for addition", newUser.FirstName);
+        _logger.LogInformation("Message with correlationId {CorrelationId} queued for addition", message.CorrelationId);
 
         return Accepted(new { id = newUser.Id });
     }
