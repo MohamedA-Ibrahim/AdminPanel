@@ -80,7 +80,7 @@ public class AddUserQueueService : BackgroundService
 
     private Task ErrorHandler(ProcessErrorEventArgs args)
     {
-        Console.WriteLine(args.Exception.ToString());
+        _logger.LogError(args.Exception, "Service Bus processing error");
         return Task.CompletedTask;
     }
 
