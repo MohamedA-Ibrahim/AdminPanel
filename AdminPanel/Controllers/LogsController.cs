@@ -17,7 +17,7 @@ public class LogsController : ControllerBase
     [HttpGet("messages")]
     public IActionResult GetMessageLogs()
     {
-        var logs = _logProvider.Logs.Informations.Where(log=> log.Message.Contains("Message with correlationId"));
+        var logs = _logProvider.Logs.Informations.Where(log => log.Message.Contains("Message with correlationId"));
 
         return Ok(logs);
     }
