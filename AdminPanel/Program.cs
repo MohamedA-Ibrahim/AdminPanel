@@ -2,11 +2,20 @@ using AdminPanel.Data;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
+using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using StackExchange.Redis;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+using var loggerProvider = new InMemoryLoggerProvider();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddProvider(loggerProvider);
+builder.Services.AddSingleton(loggerProvider);
 
 builder.Services.AddCors(options =>
 {
@@ -104,6 +113,16 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
     });
 });
+
+var serviceBusConnection = builder.Configuration.GetConnectionString("AzureServiceBus");
+
+builder.Services.AddAzureClients(builder =>
+{
+    builder.AddServiceBusClient(serviceBusConnection);
+});
+
+builder.Services.AddHostedService<AddUserQueueService>();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();

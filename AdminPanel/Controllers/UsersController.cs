@@ -1,7 +1,9 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace AdminPanel.Controllers;
 
@@ -11,10 +13,14 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UsersController> _logger;
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    private readonly IConfiguration _configuration;
+    private readonly ServiceBusClient _serviceBusClient;
+    public UsersController(IUserService userService, ILogger<UsersController> logger, IConfiguration configuration, ServiceBusClient serviceBusClient)
     {
         _userService = userService;
         _logger = logger;
+        _configuration = configuration;
+        _serviceBusClient = serviceBusClient;
     }
 
     /// <summary>
@@ -39,7 +45,7 @@ public class UsersController : ControllerBase
     {
         var result = await _userService.GetUsersAsync(filter, cancellationToken);
         var users = result.Data;
-        
+
         var cacheHeader = result.CacheHit ? "HIT" : "MISS";
         Response.Headers.Append("X-Cache", cacheHeader);
 
@@ -80,18 +86,20 @@ public class UsersController : ControllerBase
     [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
-        var result = await _userService.AddAsync(newUser);
-        if (!result.Succeeded)
-        {
-            _logger.LogWarning("Validation failed for adding the user {userName}", newUser.FirstName);
+        newUser.Id = Guid.NewGuid();
 
-            return BadRequest(result.ToString());
-        }
+        var serializedUser = JsonSerializer.Serialize(newUser);
 
+        var sender = _serviceBusClient.CreateSender("queue.1");
+        var message = new ServiceBusMessage(serializedUser);
+        
+        message.CorrelationId = newUser.Id.ToString();
 
-        _logger.LogInformation("User {userName} added successfully.", newUser.FirstName);
+        await sender.SendMessageAsync(message);
 
-        return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
+        _logger.LogInformation("Message with correlationId {CorrelationId} queued for addition", message.CorrelationId);
+
+        return Accepted(new { id = newUser.Id });
     }
 
     /// <summary>
