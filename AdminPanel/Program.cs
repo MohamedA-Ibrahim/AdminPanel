@@ -2,6 +2,7 @@ using AdminPanel.Data;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
+using Elastic.Clients.Elasticsearch;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
@@ -122,6 +123,9 @@ builder.Services.AddAzureClients(builder =>
 });
 
 builder.Services.AddHostedService<AddUserQueueService>();
+
+builder.Services.Configure<ElasticSettings>(builder.Configuration.GetSection("ElasticSettings"));
+builder.Services.AddSingleton<ElasticService>();
 
 var app = builder.Build();
 
