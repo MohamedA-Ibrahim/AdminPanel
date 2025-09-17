@@ -1,5 +1,6 @@
 ﻿using AdminPanel.Models;
 using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.QueryDsl;
 using Microsoft.Extensions.Options;
 
 namespace AdminPanel.Services;
@@ -14,13 +15,7 @@ public class ElasticService
         _elasticSettings = optionsMonitor.Value;
 
         var settings = new ElasticsearchClientSettings(new Uri(_elasticSettings.Url))
-                .DefaultMappingFor<User>(i => i
-                    .IndexName(_elasticSettings.IndexName)
-                    .IdProperty(p => p.Id)
-                )
-                .EnableDebugMode()
-                .PrettyJson()
-                .RequestTimeout(TimeSpan.FromMinutes(2));
+                .EnableDebugMode();
 
         _client = new ElasticsearchClient(settings);
     }
@@ -30,7 +25,16 @@ public class ElasticService
         var indexExists = (await _client.Indices.ExistsAsync(indexName)).Exists;
         if (!indexExists)
         {
-            await _client.Indices.CreateAsync(indexName);
+            await _client.Indices.CreateAsync<User>(indexName, i => i
+                .Mappings(mappings => mappings
+                    .Properties(properties => properties
+                        .Keyword(x => x.Id)
+                        .Text(x => x.FirstName)
+                        .Text(x => x.LastName)
+                        .Keyword(x=> x.FirstName)
+                        .Keyword(x=> x.LastName)
+                        .Keyword(x => x.Email)
+                )));
         }
     }
 
@@ -61,6 +65,23 @@ public class ElasticService
     public async Task<List<User>> GetAll()
     {
         var response = await _client.SearchAsync<User>(s => s.Indices(_elasticSettings.IndexName));
+
+        return response.IsValidResponse ? response.Documents.ToList() : [];
+    }
+
+    public async Task<List<User>> Search(string query)
+    {
+        var response = await _client.SearchAsync<User>(s => s
+        .Indices(_elasticSettings.IndexName)
+        .Query(q => q
+            .Term(t => t
+                .Field(x => x.Email)
+                .Value(query))
+            .Match(m => m
+                .Field(x => x.FirstName)
+                .Field(x => x.LastName)
+                .Query(query)
+                )));
 
         return response.IsValidResponse ? response.Documents.ToList() : [];
     }
