@@ -33,8 +33,6 @@ public class ElasticService
                         .Keyword(x => x.Id)
                         .Text(x => x.FirstName)
                         .Text(x => x.LastName)
-                        .Keyword(x=> x.FirstName)
-                        .Keyword(x=> x.LastName)
                         .Keyword(x => x.Email)
                 )));
         }
