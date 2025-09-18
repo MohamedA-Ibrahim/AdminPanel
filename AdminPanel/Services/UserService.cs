@@ -21,13 +21,14 @@ public class UserService : IUserService
     private readonly IConnectionMultiplexer _redisCache;
     private readonly IDatabaseAsync _redisDatabase;
     private readonly IConfiguration _configuration;
-
-    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration)
+    private readonly ElasticService _elasticService;
+    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration, ElasticService elasticService)
     {
         _dbContext = dbContext;
         _redisCache = connectionMultiplexer;
         _redisDatabase = _redisCache.GetDatabase();
         _configuration = configuration;
+        _elasticService = elasticService;
     }
 
     public async Task<CachedResult<List<User>>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
@@ -113,6 +114,9 @@ public class UserService : IUserService
         await _dbContext.Users.AddAsync(user);
         await _dbContext.SaveChangesAsync();
 
+        await _elasticService.CreateIndexIfNotExistsAsync();
+        await _elasticService.AddOrUpdate(user);
+
         await InvalidateUserCacheAsync();
         
         return new Result(true);
@@ -129,6 +133,7 @@ public class UserService : IUserService
         _dbContext.Users.Remove(user);
         await _dbContext.SaveChangesAsync();
 
+        await _elasticService.Remove(user.Id.ToString());
         await InvalidateUserCacheAsync(id);
         return true;
     }

@@ -20,8 +20,10 @@ public class ElasticService
         _client = new ElasticsearchClient(settings);
     }
 
-    public async Task CreateIndexIfNotExistsAsync(string indexName)
+    public async Task CreateIndexIfNotExistsAsync()
     {
+        var indexName = _elasticSettings.IndexName;
+
         var indexExists = (await _client.Indices.ExistsAsync(indexName)).Exists;
         if (!indexExists)
         {

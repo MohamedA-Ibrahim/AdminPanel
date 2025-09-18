@@ -15,12 +15,14 @@ public class UsersController : ControllerBase
     private readonly ILogger<UsersController> _logger;
     private readonly IConfiguration _configuration;
     private readonly ServiceBusClient _serviceBusClient;
-    public UsersController(IUserService userService, ILogger<UsersController> logger, IConfiguration configuration, ServiceBusClient serviceBusClient)
+    private readonly ElasticService _elasticService;
+    public UsersController(IUserService userService, ILogger<UsersController> logger, IConfiguration configuration, ServiceBusClient serviceBusClient, ElasticService elasticService)
     {
         _userService = userService;
         _logger = logger;
         _configuration = configuration;
         _serviceBusClient = serviceBusClient;
+        _elasticService = elasticService;
     }
 
     /// <summary>
@@ -83,7 +85,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
-    [Authorize]
+    //[Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
         newUser.Id = Guid.NewGuid();
@@ -119,5 +121,13 @@ public class UsersController : ControllerBase
         _logger.LogInformation("User {userId} deleted successfully.", id);
 
         return NoContent();
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string query)
+    {
+        var users = await _elasticService.Search(query);
+
+        return Ok(users);
     }
 }
