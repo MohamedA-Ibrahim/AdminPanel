@@ -106,11 +106,6 @@ public class UserService : IUserService
 
     public async Task<Result> AddAsync(User user)
     {
-        var validator = new UserValidator();
-        var result = await validator.ValidateAsync(user);
-        if (!result.IsValid)
-            return new Result(false, result.ToString());
-
         await _dbContext.Users.AddAsync(user);
         await _dbContext.SaveChangesAsync();
 

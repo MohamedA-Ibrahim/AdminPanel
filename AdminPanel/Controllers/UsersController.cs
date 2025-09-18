@@ -1,5 +1,6 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
+using AdminPanel.Validators;
 using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -88,6 +89,11 @@ public class UsersController : ControllerBase
     //[Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
+        var validator = new UserValidator();
+        var result = await validator.ValidateAsync(newUser);
+        if (!result.IsValid)
+            return BadRequest(result.ToString());
+
         newUser.Id = Guid.NewGuid();
 
         var serializedUser = JsonSerializer.Serialize(newUser);
