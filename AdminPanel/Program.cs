@@ -129,6 +129,24 @@ builder.Services.AddSingleton<ElasticService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var elasticService = scope.ServiceProvider.GetRequiredService<ElasticService>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    await elasticService.CreateIndexIfNotExistsAsync();
+    var count = await elasticService.GetCount();
+    
+    if (count == 0)
+    {
+        var users = await dbContext.Users.AsNoTracking().ToListAsync();
+        if (users.Count != 0)
+        {
+            await elasticService.BulkAddOrUpdateUsers(users);
+        }
+    }
+}
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

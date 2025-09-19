@@ -65,8 +65,23 @@ public class ElasticService
     public async Task<List<User>> GetAll()
     {
         var response = await _client.SearchAsync<User>(s => s.Indices(_elasticSettings.IndexName));
-
         return response.IsValidResponse ? response.Documents.ToList() : [];
+    }
+
+    public async Task<bool> BulkAddOrUpdateUsers(List<User> users)
+    {
+        var response = await _client.BulkAsync(idx => idx
+            .Index(_elasticSettings.IndexName)
+            .UpdateMany(users, (ud, u) => ud.Doc(u).DocAsUpsert(true)));
+
+        return response.IsValidResponse;
+    }
+
+    public async Task<long?> GetCount()
+    {
+        var response = await _client.CountAsync<User>(s => s.Indices(_elasticSettings.IndexName));
+
+        return response.IsValidResponse ? response.Count : null;
     }
 
     public async Task<List<User>> Search(string query)
