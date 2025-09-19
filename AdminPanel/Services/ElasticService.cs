@@ -84,13 +84,13 @@ public class ElasticService
         return response.IsValidResponse ? response.Count : null;
     }
 
-    public async Task<List<User>> Search(string? query)
+    public async Task<List<User>?> Search(string? query, CancellationToken cancellation)
     {
         SearchResponse<User> response;
 
         if (string.IsNullOrEmpty(query))
         {
-            response = await _client.SearchAsync<User>(s => s.Indices(_elasticSettings.IndexName));
+            response = await _client.SearchAsync<User>(s => s.Indices(_elasticSettings.IndexName), cancellation);
         }
         else
         {
@@ -104,10 +104,10 @@ public class ElasticService
                     .Field(x => x.FirstName)
                     .Field(x => x.LastName)
                     .Query(query)
-                    )));
+                    )), cancellation);
         }
 
-        return response.IsValidResponse ? response.Documents.ToList() : [];
+        return response.IsValidResponse ? response.Documents.ToList() : null;
     }
 
     public async Task<bool> Remove(string key)

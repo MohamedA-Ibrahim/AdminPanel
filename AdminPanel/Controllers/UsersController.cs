@@ -5,6 +5,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Threading;
 
 namespace AdminPanel.Controllers;
 
@@ -130,10 +131,17 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? query)
+    public async Task<IActionResult> Search([FromQuery] string? query, CancellationToken cancellation)
     {
-        var users = await _elasticService.Search(query);
+        var users = await _elasticService.Search(query, cancellation);
+        if(users is not null)
+        {
+            return Ok(users);
+        }
 
-        return Ok(users);
+        var result = await _userService.GetUsersAsync(new GetUsersFilter() { Search = query }, cancellation);
+        var dbUsers = result.Data;
+
+        return Ok(dbUsers);
     }
 }
