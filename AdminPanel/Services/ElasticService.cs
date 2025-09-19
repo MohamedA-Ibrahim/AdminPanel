@@ -84,19 +84,28 @@ public class ElasticService
         return response.IsValidResponse ? response.Count : null;
     }
 
-    public async Task<List<User>> Search(string query)
+    public async Task<List<User>> Search(string? query)
     {
-        var response = await _client.SearchAsync<User>(s => s
-        .Indices(_elasticSettings.IndexName)
-        .Query(q => q
-            .Term(t => t
-                .Field(x => x.Email)
-                .Value(query))
-            .Match(m => m
-                .Field(x => x.FirstName)
-                .Field(x => x.LastName)
-                .Query(query)
-                )));
+        SearchResponse<User> response;
+
+        if (string.IsNullOrEmpty(query))
+        {
+            response = await _client.SearchAsync<User>(s => s.Indices(_elasticSettings.IndexName));
+        }
+        else
+        {
+            response = await _client.SearchAsync<User>(s => s
+            .Indices(_elasticSettings.IndexName)
+            .Query(q => q
+                .Term(t => t
+                    .Field(x => x.Email)
+                    .Value(query))
+                .Match(m => m
+                    .Field(x => x.FirstName)
+                    .Field(x => x.LastName)
+                    .Query(query)
+                    )));
+        }
 
         return response.IsValidResponse ? response.Documents.ToList() : [];
     }

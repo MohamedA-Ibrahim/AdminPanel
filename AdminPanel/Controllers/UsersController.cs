@@ -130,7 +130,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string query)
+    public async Task<IActionResult> Search([FromQuery] string? query)
     {
         var users = await _elasticService.Search(query);
 
