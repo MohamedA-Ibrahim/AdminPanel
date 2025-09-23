@@ -21,8 +21,9 @@ public class UserService : IUserService
     private readonly IConnectionMultiplexer _redisCache;
     private readonly IDatabaseAsync _redisDatabase;
     private readonly IConfiguration _configuration;
-    private readonly ElasticService _elasticService;
-    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration, ElasticService elasticService)
+    private readonly IElasticService _elasticService;
+
+    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration, IElasticService elasticService)
     {
         _dbContext = dbContext;
         _redisCache = connectionMultiplexer;

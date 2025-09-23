@@ -15,14 +15,12 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UsersController> _logger;
-    private readonly IConfiguration _configuration;
     private readonly ServiceBusClient _serviceBusClient;
-    private readonly ElasticService _elasticService;
-    public UsersController(IUserService userService, ILogger<UsersController> logger, IConfiguration configuration, ServiceBusClient serviceBusClient, ElasticService elasticService)
+    private readonly IElasticService _elasticService;
+    public UsersController(IUserService userService, ILogger<UsersController> logger, ServiceBusClient serviceBusClient, IElasticService elasticService)
     {
         _userService = userService;
         _logger = logger;
-        _configuration = configuration;
         _serviceBusClient = serviceBusClient;
         _elasticService = elasticService;
     }

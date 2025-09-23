@@ -1,11 +1,10 @@
 ﻿using AdminPanel.Models;
 using Elastic.Clients.Elasticsearch;
-using Elastic.Clients.Elasticsearch.QueryDsl;
 using Microsoft.Extensions.Options;
 
 namespace AdminPanel.Services;
 
-public class ElasticService
+public class ElasticService : IElasticService
 {
     private readonly ElasticsearchClient _client;
     private readonly ElasticSettings _elasticSettings;
@@ -124,5 +123,4 @@ public class ElasticService
 
         return response.IsValidResponse ? response.Deleted : default;
     }
-
 }

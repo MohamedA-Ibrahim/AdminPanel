@@ -125,7 +125,7 @@ builder.Services.AddAzureClients(builder =>
 builder.Services.AddHostedService<AddUserQueueService>();
 
 builder.Services.Configure<ElasticSettings>(builder.Configuration.GetSection("ElasticSettings"));
-builder.Services.AddSingleton<ElasticService>();
+builder.Services.AddSingleton<IElasticService, ElasticService>();
 
 var app = builder.Build();
 

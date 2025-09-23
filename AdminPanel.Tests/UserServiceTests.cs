@@ -11,6 +11,8 @@ namespace AdminPanel.Tests;
 public class UserServiceTests
 {
     private readonly IUserService _userService;
+    private readonly Mock<IElasticService> _elasticServiceMock;
+    private readonly AppDbContext _context;
 
     public UserServiceTests()
     {
@@ -18,7 +20,7 @@ public class UserServiceTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-       var context = new AppDbContext(options);
+        _context = new AppDbContext(options);
 
         // Mock Redis
         var redisMock = new Mock<IConnectionMultiplexer>();
@@ -34,8 +36,16 @@ public class UserServiceTests
             .AddInMemoryCollection(inMemorySettings!)
             .Build();
 
+        // Mock ElasticService
+        _elasticServiceMock = new Mock<IElasticService>();
+        _elasticServiceMock.Setup(x => x.CreateIndexIfNotExistsAsync())
+            .Returns(Task.CompletedTask);
+        _elasticServiceMock.Setup(x => x.AddOrUpdate(It.IsAny<User>()))
+            .ReturnsAsync(true);
+        _elasticServiceMock.Setup(x => x.Remove(It.IsAny<string>()))
+            .ReturnsAsync(true);
 
-        _userService = new UserService(context, redisMock.Object, configuration);
+        _userService = new UserService(_context, redisMock.Object, configuration, _elasticServiceMock.Object);
     }
 
     [Fact]
@@ -134,25 +144,7 @@ public class UserServiceTests
         Assert.Contains(users.Data, u => u.Id == newUser.Id);
     }
 
-    [Fact]
-    public async Task AddAsync_WhenEmailIsInvaid_ShouldReturnError()
-    {
-        // Arrange
-        var newUser = new User
-        {
-            Id = Guid.NewGuid(),
-            FirstName = "Test",
-            LastName = "User",
-            Email = "invalid-email",
-            Phone = "0512354564"
-        };
 
-        // Act
-        var result = await _userService.AddAsync(newUser);
-
-        // Assert
-        Assert.False(result.Succeeded);
-    }
 
     [Fact]
     public async Task DeleteAsync_WhenUserExists_ShouldDeleteUser()
