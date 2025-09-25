@@ -96,14 +96,12 @@ public class ElasticService : IElasticService
             response = await _client.SearchAsync<User>(s => s
             .Indices(_elasticSettings.IndexName)
             .Query(q => q
-                .Term(t => t
-                    .Field(x => x.Email)
-                    .Value(query))
-                .Match(m => m
-                    .Field(x => x.FirstName)
-                    .Field(x => x.LastName)
-                    .Query(query)
-                    )), cancellation);
+              .Bool(b => b
+                    .Should(
+                       bs => bs.Term(t => t.Field(x => x.Email.Suffix("keyword")).Value(query)),
+                       bs => bs.MultiMatch(mm => mm.Fields(x => x.FirstName, x=> x.LastName).Query(query))
+                    )
+                )), cancellation);
         }
 
         return response.IsValidResponse ? response.Documents.ToList() : null;
