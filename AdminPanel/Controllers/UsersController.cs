@@ -85,7 +85,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(User), 201)]
     [ProducesResponseType(typeof(string), 400)]
-    //[Authorize]
+    [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
         var validator = new UserValidator();
