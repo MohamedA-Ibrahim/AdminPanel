@@ -1,9 +1,11 @@
 ﻿using AdminPanel.Models;
 using AdminPanel.Services;
+using AdminPanel.Validators;
 using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Threading;
 
 namespace AdminPanel.Controllers;
 
@@ -13,14 +15,14 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UsersController> _logger;
-    private readonly IConfiguration _configuration;
     private readonly ServiceBusClient _serviceBusClient;
-    public UsersController(IUserService userService, ILogger<UsersController> logger, IConfiguration configuration, ServiceBusClient serviceBusClient)
+    private readonly IElasticService _elasticService;
+    public UsersController(IUserService userService, ILogger<UsersController> logger, ServiceBusClient serviceBusClient, IElasticService elasticService)
     {
         _userService = userService;
         _logger = logger;
-        _configuration = configuration;
         _serviceBusClient = serviceBusClient;
+        _elasticService = elasticService;
     }
 
     /// <summary>
@@ -86,6 +88,11 @@ public class UsersController : ControllerBase
     [Authorize]
     public async Task<IActionResult> AddUser(User newUser)
     {
+        var validator = new UserValidator();
+        var result = await validator.ValidateAsync(newUser);
+        if (!result.IsValid)
+            return BadRequest(result.ToString());
+
         newUser.Id = Guid.NewGuid();
 
         var serializedUser = JsonSerializer.Serialize(newUser);
@@ -119,5 +126,20 @@ public class UsersController : ControllerBase
         _logger.LogInformation("User {userId} deleted successfully.", id);
 
         return NoContent();
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string? query, CancellationToken cancellation)
+    {
+        var users = await _elasticService.Search(query, cancellation);
+        if(users is not null)
+        {
+            return Ok(users);
+        }
+
+        var result = await _userService.GetUsersAsync(new GetUsersFilter() { Search = query }, cancellation);
+        var dbUsers = result.Data;
+
+        return Ok(dbUsers);
     }
 }

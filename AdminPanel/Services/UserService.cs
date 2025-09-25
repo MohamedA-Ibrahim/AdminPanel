@@ -21,13 +21,15 @@ public class UserService : IUserService
     private readonly IConnectionMultiplexer _redisCache;
     private readonly IDatabaseAsync _redisDatabase;
     private readonly IConfiguration _configuration;
+    private readonly IElasticService _elasticService;
 
-    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration)
+    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration, IElasticService elasticService)
     {
         _dbContext = dbContext;
         _redisCache = connectionMultiplexer;
         _redisDatabase = _redisCache.GetDatabase();
         _configuration = configuration;
+        _elasticService = elasticService;
     }
 
     public async Task<CachedResult<List<User>>> GetUsersAsync(GetUsersFilter filter, CancellationToken cancellationToken = default)
@@ -105,13 +107,11 @@ public class UserService : IUserService
 
     public async Task<Result> AddAsync(User user)
     {
-        var validator = new UserValidator();
-        var result = await validator.ValidateAsync(user);
-        if (!result.IsValid)
-            return new Result(false, result.ToString());
-
         await _dbContext.Users.AddAsync(user);
         await _dbContext.SaveChangesAsync();
+
+        await _elasticService.CreateIndexIfNotExistsAsync();
+        await _elasticService.AddOrUpdate(user);
 
         await InvalidateUserCacheAsync();
         
@@ -129,6 +129,7 @@ public class UserService : IUserService
         _dbContext.Users.Remove(user);
         await _dbContext.SaveChangesAsync();
 
+        await _elasticService.Remove(user.Id.ToString());
         await InvalidateUserCacheAsync(id);
         return true;
     }

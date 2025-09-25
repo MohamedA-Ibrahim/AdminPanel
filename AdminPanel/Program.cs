@@ -2,6 +2,7 @@ using AdminPanel.Data;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Services;
+using Elastic.Clients.Elasticsearch;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
@@ -123,7 +124,28 @@ builder.Services.AddAzureClients(builder =>
 
 builder.Services.AddHostedService<AddUserQueueService>();
 
+builder.Services.Configure<ElasticSettings>(builder.Configuration.GetSection("ElasticSettings"));
+builder.Services.AddSingleton<IElasticService, ElasticService>();
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var elasticService = scope.ServiceProvider.GetRequiredService<IElasticService>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    await elasticService.CreateIndexIfNotExistsAsync();
+    var count = await elasticService.GetCount();
+    
+    if (count == 0)
+    {
+        var users = await dbContext.Users.AsNoTracking().ToListAsync();
+        if (users.Count != 0)
+        {
+            await elasticService.BulkAddOrUpdateUsers(users);
+        }
+    }
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
