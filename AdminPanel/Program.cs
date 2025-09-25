@@ -131,7 +131,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var elasticService = scope.ServiceProvider.GetRequiredService<ElasticService>();
+    var elasticService = scope.ServiceProvider.GetRequiredService<IElasticService>();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     
     await elasticService.CreateIndexIfNotExistsAsync();
