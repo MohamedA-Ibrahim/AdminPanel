@@ -37,7 +37,7 @@ builder.Services.AddSwaggerGen(sg =>
     sg.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserService, DbUserService>();
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options
