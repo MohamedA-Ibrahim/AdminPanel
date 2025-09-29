@@ -1,10 +1,12 @@
 using AdminPanel.Data;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
+using AdminPanel.Models.Settings;
 using AdminPanel.Services;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Reflection;
 
@@ -123,6 +125,7 @@ builder.Services.AddAzureClients(builder =>
 
 builder.Services.AddHostedService<AddUserQueueService>();
 
+builder.Services.Configure<FeatureConfig>(builder.Configuration.GetSection("Features"));
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
