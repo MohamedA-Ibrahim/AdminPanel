@@ -35,7 +35,7 @@ public class UserServiceTests
             .Build();
 
 
-        _userService = new UserService(context, redisMock.Object, configuration);
+        _userService = new DbUserService(context, redisMock.Object, configuration);
     }
 
     [Fact]
