@@ -1,4 +1,5 @@
 using AdminPanel.Data;
+using AdminPanel.gRPC;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
 using AdminPanel.Models.Settings;
@@ -111,8 +112,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         EndPoints = { connectionString },
         AbortOnConnectFail = false,
-       
-
     });
 });
 
@@ -126,6 +125,9 @@ builder.Services.AddAzureClients(builder =>
 builder.Services.AddHostedService<AddUserQueueService>();
 
 builder.Services.Configure<FeatureConfig>(builder.Configuration.GetSection("Features"));
+
+builder.Services.AddGrpc();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -142,5 +144,11 @@ app.UseCors();
 app.UseAuthorization();
 
 app.MapControllers();
+
+var featureConfig = app.Services.GetRequiredService<IOptions<FeatureConfig>>().Value;
+if (featureConfig.EnableGrpc)
+{
+    app.MapGrpcService<GrpcUserService>();
+}
 
 app.Run();
