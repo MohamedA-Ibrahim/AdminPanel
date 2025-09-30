@@ -15,14 +15,14 @@ public interface IUserService
     Task<bool> DeleteAsync(Guid id);
 }
 
-public class UserService : IUserService
+public class DbUserService : IUserService
 {
     private readonly AppDbContext _dbContext;
     private readonly IConnectionMultiplexer _redisCache;
     private readonly IDatabaseAsync _redisDatabase;
     private readonly IConfiguration _configuration;
 
-    public UserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration)
+    public DbUserService(AppDbContext dbContext, IConnectionMultiplexer connectionMultiplexer, IConfiguration configuration)
     {
         _dbContext = dbContext;
         _redisCache = connectionMultiplexer;

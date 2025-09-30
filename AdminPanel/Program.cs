@@ -1,10 +1,13 @@
 using AdminPanel.Data;
+using AdminPanel.gRPC;
 using AdminPanel.Middlewares;
 using AdminPanel.Models;
+using AdminPanel.Models.Settings;
 using AdminPanel.Services;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Reflection;
 
@@ -24,7 +27,9 @@ builder.Services.AddCors(options =>
         options.WithOrigins("http://localhost:4200")
                .AllowAnyHeader()
                .WithMethods("GET", "POST", "PUT", "DELETE")
-               .WithExposedHeaders("X-Cache");
+               .WithExposedHeaders("X-Cache", "Grpc-Status", "Grpc-Message",
+                "Grpc-Encoding", "Grpc-Accept-Encoding",
+                "Grpc-Status-Details-Bin");
     });
 });
 
@@ -37,7 +42,7 @@ builder.Services.AddSwaggerGen(sg =>
     sg.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserService, DbUserService>();
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options
@@ -109,8 +114,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         EndPoints = { connectionString },
         AbortOnConnectFail = false,
-       
-
     });
 });
 
@@ -123,7 +126,12 @@ builder.Services.AddAzureClients(builder =>
 
 builder.Services.AddHostedService<AddUserQueueService>();
 
+builder.Services.Configure<FeatureConfig>(builder.Configuration.GetSection("Features"));
+
+builder.Services.AddGrpc();
+
 var app = builder.Build();
+app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -139,5 +147,11 @@ app.UseCors();
 app.UseAuthorization();
 
 app.MapControllers();
+
+var featureConfig = app.Services.GetRequiredService<IOptions<FeatureConfig>>().Value;
+if (featureConfig.EnableGrpc)
+{
+    app.MapGrpcService<GrpcUserService>();
+}
 
 app.Run();
