@@ -27,7 +27,9 @@ builder.Services.AddCors(options =>
         options.WithOrigins("http://localhost:4200")
                .AllowAnyHeader()
                .WithMethods("GET", "POST", "PUT", "DELETE")
-               .WithExposedHeaders("X-Cache");
+               .WithExposedHeaders("X-Cache", "Grpc-Status", "Grpc-Message",
+                "Grpc-Encoding", "Grpc-Accept-Encoding",
+                "Grpc-Status-Details-Bin");
     });
 });
 
@@ -129,6 +131,7 @@ builder.Services.Configure<FeatureConfig>(builder.Configuration.GetSection("Feat
 builder.Services.AddGrpc();
 
 var app = builder.Build();
+app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
