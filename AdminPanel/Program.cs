@@ -109,10 +109,11 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         EndPoints = { connectionString },
         AbortOnConnectFail = false,
-       
-
     });
 });
+
+// Add RedisService as singleton
+builder.Services.AddSingleton<IRedisService, RedisService>();
 
 var serviceBusConnection = builder.Configuration.GetConnectionString("AzureServiceBus");
 

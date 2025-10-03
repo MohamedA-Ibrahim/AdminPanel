@@ -21,9 +21,8 @@ public class UserServiceTests
        var context = new AppDbContext(options);
 
         // Mock Redis
-        var redisMock = new Mock<IConnectionMultiplexer>();
-        redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-                 .Returns(Mock.Of<IDatabase>());
+        var redisMock = new Mock<IRedisService>();
+        _userService = new UserService(context, redisMock.Object);
 
         // Mock IConfiguration
         var inMemorySettings = new Dictionary<string, string?>
